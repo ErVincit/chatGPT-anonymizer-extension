@@ -1,0 +1,85 @@
+name: Build and Release Extension
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from manifest
+        id: get_version
+        run: |
+          VERSION=$(grep -oP '"version"\s*:\s*"\K[^"]+' manifest.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extension version: $VERSION"
+
+      - name: Create build directory
+        run: mkdir -p build
+
+      - name: Copy extension files
+        run: |
+          cp manifest.json build/
+          cp background.js build/
+          cp content.js build/
+          cp injected.js build/
+          cp popup.html build/
+          cp popup.js build/
+          # If you have icons, uncomment:
+          # cp icon*.png build/ 2>/dev/null || true
+
+      - name: Create ZIP archive
+        run: |
+          cd build
+          zip -r ../chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip *
+          cd ..
+
+      - name: Generate SHA256 checksum
+        run: |
+          sha256sum chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip > chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-build
+          path: |
+            chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip
+            chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip.sha256
+          retention-days: 30
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip
+            chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip.sha256
+          body: |
+            ## ChatGPT Anonymizer v${{ steps.get_version.outputs.version }}
+
+            ### Installation
+            1. Download `chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip`
+            2. Extract the ZIP file
+            3. Open Chrome/Edge and navigate to `chrome://extensions/`
+            4. Enable "Developer mode"
+            5. Click "Load unpacked" and select the extracted folder
+
+            ### What's Changed
+            - See commit history for details
+
+            ### Verification
+            You can verify the integrity of the download using the SHA256 checksum:
+            ```bash
+            sha256sum -c chatgpt-anonymizer-v${{ steps.get_version.outputs.version }}.zip.sha256
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
