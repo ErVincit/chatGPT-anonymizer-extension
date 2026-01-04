@@ -19,6 +19,12 @@
       "matches": ["https://chatgpt.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["injected.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "action": {

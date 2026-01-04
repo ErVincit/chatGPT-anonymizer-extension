@@ -1,16 +1,4 @@
 // Content script that bridges page and extension
-console.log('[Content] Script loaded');
-
-// Inject the script into page context
-const script = document.createElement('script');
-script.src = chrome.runtime.getURL('injected.js');
-script.onload = function() {
-  this.remove();
-  console.log('[Content] Injected script loaded');
-};
-(document.head || document.documentElement).appendChild(script);
-
-// Listen for messages from injected script
 window.addEventListener('message', async (event) => {
   if (event.source !== window) return;
   
